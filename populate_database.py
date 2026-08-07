@@ -32,3 +32,12 @@ def load_documents():
     return documents_loader.load()
 
 
+def split_documents(documents):
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=800,
+        chunk_overlap=80,
+        length_function = len,
+        is_seperator_regex = False
+        )
+
+    return text_splitter.split_documents(documents)
