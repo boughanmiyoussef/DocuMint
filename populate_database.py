@@ -41,3 +41,31 @@ def split_documents(documents):
         )
 
     return text_splitter.split_documents(documents)
+
+
+def add_to_chroma(chunks):
+    db = Chroma(
+        persist_directory = CHROMA_PATH,
+        embedding_function = get_embedding_function()
+    )
+    
+    
+    chunks_with_ids = calculate_chunks_ids(chunks)
+    existing_items = db.get(include =[])
+    existing_ids = set(existing_items["ids"])
+    print(f"number of existing documents in database")
+    
+    
+    
+    new_chunks = []
+    for chunk in chunks_with_ids:
+        if chunk.metadata["id"] not in existing_ids:
+            new_chunks.append(chunk)
+
+    if len(new_chunks):
+        print(f"adding new documents: {len(new_chunks)}")
+        new_chunk_ids = [chunk.metadata["id"] for chunk in new_chunks]
+        db.add_documents(new_chunks, ids=new_chunk_ids)
+        db.persist()
+    else:
+        print("No new documents to add")
