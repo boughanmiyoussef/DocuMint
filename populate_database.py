@@ -53,7 +53,7 @@ def add_to_chroma(chunks):
     chunks_with_ids = calculate_chunks_ids(chunks)
     existing_items = db.get(include =[])
     existing_ids = set(existing_items["ids"])
-    print(f"number of existing documents in database")
+    print(f"number of existing documents in database: {len(existing_ids)} ")
     
     
     
@@ -90,3 +90,41 @@ def calculate_chunk_ids(chunks):
         chunk.metadata["id"] = chunk_id
 
     return chunks
+
+
+def clear_database():
+    if os.path.exists(CHROMA_PATH):
+        shutil.rmtree(CHROMA_PATH)
+        
+        
+def ingest_file(file_path):
+    """ingest a single file into the database"""
+    from langchain_community.document_loaders import PyPDFLoader
+    
+    loader = PyPDFLoader(file_path)
+    documents = loader.load()
+    chunks = split_documents(documents)
+    
+    db = Chroma(
+        persist_directory = CHROMA_PATH,
+        embedding_function = get_embedding_function()
+    )
+    
+    chunks_with_ids = calculate_chunks_ids(chunks)
+    existing_items = db.get(include =[])
+    existing_ids = set(existing_items["ids"])
+    
+    new_chunks = [chunk for chunk in chunks_with_ids if chunk.metadata["id"] not in existing_ids]
+    
+    
+    if new_chunks:
+        new_chunk_ids = [chunk.metadata["id"] for chunk in new_chunks]
+        db.add_documents(new_chunks, ids=new_chunk_ids)
+        db.persist()
+        return f"added {len(new_chunks)} new chunks from {os.path.basename(file_path)}"
+    else:
+        return f"no content to add from {os.path.basename(file_path)}"
+
+    
+if __name__ == "__main__":
+    main()
